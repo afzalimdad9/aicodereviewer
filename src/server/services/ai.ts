@@ -104,7 +104,7 @@ ${diffContent}`;
   const response = await geminiAI.models.generateContent({
     model: "gemini-3.5-flash-lite",
     contents: `${SYSTEM_PROMPT}\n\n${userPrompt}`,
-    config: {temperature: 0.3,maxOutputTokens: 2000, stopSequences: ['```']},
+    config: {temperature: 0.3,maxOutputTokens: 2000},
   });
 
   const content = response.text;
