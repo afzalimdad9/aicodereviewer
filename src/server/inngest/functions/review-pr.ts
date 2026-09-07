@@ -21,8 +21,8 @@ export const reviewPR = inngest.createFunction(
   {
     id: "review-pr",
     retries: 2,
+    triggers: { event: "review/pr.requested" },
   },
-  { event: "review/pr.requested" },
   async ({ event, step }) => {
     const { reviewId, repositoryId, prNumber, userId } = event.data;
 
