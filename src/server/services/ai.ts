@@ -1,19 +1,19 @@
-import OpenAI from "openai";
+import { GoogleGenAI } from '@google/genai';
 import { z } from "zod";
 
-let openaiClient: OpenAI | null = null;
+let geminiClient: GoogleGenAI | null = null;
 
-function getOpenAIClient(): OpenAI {
-  const apiKey = process.env.OPENAI_API_KEY;
+function getGeminiAIClient(): GoogleGenAI {
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not set");
+    throw new Error("GEMINI_API_KEY is not set");
   }
 
-  if (!openaiClient) {
-    openaiClient = new OpenAI({ apiKey });
+  if (!geminiClient) {
+    geminiClient = new GoogleGenAI();
   }
 
-  return openaiClient;
+  return geminiClient;
 }
 
 export const ReviewCommentSchema = z.object({
@@ -100,25 +100,116 @@ export async function reviewCode(
 **Changes:**
 ${diffContent}`;
 
-  const openai = getOpenAIClient();
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: userPrompt },
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.3,
-    max_tokens: 2000,
+  const geminiAI = getGeminiAIClient();
+  const response = await geminiAI.models.generateContent({
+    model: "gemini-3.5-flash-lite",
+    contents: `${SYSTEM_PROMPT}\n\n${userPrompt}`,
+    config: {temperature: 0.3,maxOutputTokens: 2000, stopSequences: ['```']},
   });
 
-  const content = response.choices[0]?.message?.content;
+  const content = response.text;
   if (!content) {
     throw new Error("No response from AI");
   }
 
-  const parsed = JSON.parse(content);
+  const parsed = parseJson(content);
   const validated = ReviewResultSchema.parse(parsed);
 
   return validated;
+}
+
+function parseJson(input: string | null | object) {
+  // Already a JS object/array
+  if (typeof input === "object" && input !== null) {
+    return input;
+  }
+
+  if (typeof input !== "string") {
+    throw new TypeError("Input must be a JSON object, array, or string.");
+  }
+
+  const text = input.trim();
+
+  // 1. Try parsing the entire input directly
+  try {
+    return JSON.parse(text);
+  } catch {}
+
+  // 2. Extract JSON from Markdown code fences
+  const codeBlock = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+
+  if (codeBlock) {
+    try {
+      return JSON.parse(codeBlock[1].trim());
+    } catch {}
+  }
+
+  // 3. Find the first JSON object or array embedded in text
+  const json = extractJson(text);
+
+  if (json !== null) {
+    try {
+      return JSON.parse(json);
+    } catch {}
+  }
+
+  throw new Error("No valid JSON object or array found.");
+}
+
+function extractJson(text: string) {
+  let start = -1;
+  let stack = [];
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+
+    // Handle JSON strings
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    // Start of JSON object/array
+    if (char === "{" || char === "[") {
+      if (start === -1) {
+        start = i;
+      }
+
+      stack.push(char);
+      continue;
+    }
+
+    // End of JSON object/array
+    if (char === "}" || char === "]") {
+      if (stack.length === 0) continue;
+
+      const expected = char === "}" ? "{" : "[";
+
+      if (stack[stack.length - 1] !== expected) {
+        return null;
+      }
+
+      stack.pop();
+
+      // Complete JSON found
+      if (stack.length === 0 && start !== -1) {
+        return text.slice(start, i + 1);
+      }
+    }
+  }
+
+  return null;
 }

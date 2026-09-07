@@ -24,7 +24,7 @@ jobs:
       NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL != '' && secrets.NEXT_PUBLIC_APP_URL || 'https://example.com' }}
       GITHUB_CLIENT_ID: ${{ secrets.GITHUB_CLIENT_ID != '' && secrets.GITHUB_CLIENT_ID || 'ci-github-client-id' }}
       GITHUB_CLIENT_SECRET: ${{ secrets.GITHUB_CLIENT_SECRET != '' && secrets.GITHUB_CLIENT_SECRET || 'ci-github-client-secret' }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY != '' && secrets.OPENAI_API_KEY || 'sk-ci-placeholder' }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY != '' && secrets.GEMINI_API_KEY || 'sk-ci-placeholder' }}
       GITHUB_WEBHOOK_SECRET: ${{ secrets.GITHUB_WEBHOOK_SECRET != '' && secrets.GITHUB_WEBHOOK_SECRET || 'ci-webhook-secret' }}
       INNGEST_EVENT_KEY: ${{ secrets.INNGEST_EVENT_KEY != '' && secrets.INNGEST_EVENT_KEY || 'ci-inngest-event-key' }}
       INNGEST_SIGNING_KEY: ${{ secrets.INNGEST_SIGNING_KEY != '' && secrets.INNGEST_SIGNING_KEY || 'ci-inngest-signing-key' }}
